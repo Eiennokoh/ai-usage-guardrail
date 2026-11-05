@@ -1,0 +1,7 @@
+# 顧客名辞書（すべて架空）。aliases は「|」区切り。action: mask=仮名に置換 / block=送信停止
+name,aliases,action,note
+さくら年金基金,さくら年金|Sakura Pension Fund,mask,企業年金・大口顧客
+青葉生命保険,青葉生命|Aoba Life,mask,生命保険会社
+みなと信用金庫,みなと信金|Minato Shinkin,mask,地域金融機関
+東都化学工業企業年金基金,東都化学年金|Toto Chemical Pension,mask,企業年金
+北斗大学,北斗大学基金|Hokuto University,mask,学校法人・基金運用

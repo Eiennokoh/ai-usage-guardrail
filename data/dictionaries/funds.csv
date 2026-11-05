@@ -1,0 +1,5 @@
+# 取扱ファンド名辞書（すべて架空）
+name,aliases,action,note
+グローバル高配当株ファンド,Global High Dividend Equity Fund,mask,公募投信
+日本中小型成長株ファンド,中小型成長株ファンド|Japan Small Cap Growth Fund,mask,公募投信
+アジア債券インカムファンド,Asia Bond Income Fund,mask,私募投信
