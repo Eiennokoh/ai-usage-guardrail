@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI送信前チェック</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1d2330; --muted:#667085; --line:#e4e7ec;
+          --ok:#1f7a4d; --ok-bg:#e8f5ee; --mask:#946200; --mask-bg:#fff6e0; --ng:#b42318; --ng-bg:#fdecea; --accent:#1d4ed8; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family: system-ui, "Hiragino Sans", "Yu Gothic UI", sans-serif; background:var(--bg); color:var(--text); }
+  main { max-width:980px; margin:0 auto; padding:24px 16px 48px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin-bottom:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:16px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  input, select, textarea { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; }
+  textarea { width:100%; min-height:84px; resize:vertical; }
+  button { font:inherit; padding:8px 18px; border:0; border-radius:6px; background:var(--accent); color:#fff; cursor:pointer; }
+  button:disabled { opacity:.5; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .chip { font-size:12px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#fff; cursor:pointer; color:var(--text); }
+  .badge { display:inline-block; font-weight:600; padding:3px 10px; border-radius:999px; font-size:13px; }
+  .allow { color:var(--ok); background:var(--ok-bg); } .mask { color:var(--mask); background:var(--mask-bg); } .block { color:var(--ng); background:var(--ng-bg); }
+  dl { display:grid; grid-template-columns:120px 1fr; gap:8px 12px; margin:12px 0 0; font-size:14px; }
+  dt { color:var(--muted); } dd { margin:0; white-space:pre-wrap; word-break:break-word; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:500; } td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  @media (max-width:560px) { dl { grid-template-columns:1fr; } dt { margin-top:6px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>AI送信前チェック</h1>
+  <div class="sub" id="mode">ai-usage-guardrail</div>
+
+  <div class="card">
+    <div class="row">
+      <input id="user" placeholder="ユーザーID" value="tanaka" size="12">
+      <select id="dept"><option>運用部</option><option>営業企画部</option><option>コンプライアンス部</option><option>IT部</option></select>
+    </div>
+    <textarea id="prompt" placeholder="AIへの依頼文を入力"></textarea>
+    <div class="row" style="margin-top:8px"><button id="run">チェックして送信</button></div>
+    <div class="chips" id="samples"></div>
+  </div>
+
+  <div class="card" id="result" hidden></div>
+
+  <div class="card">
+    <strong style="font-size:14px">部署別の利用状況</strong>
+    <table id="summary"><thead><tr><th>部署</th><th class="num">利用</th><th class="num">マスク</th><th class="num">ブロック</th><th class="num">回答の警告</th><th class="num">エラー</th><th class="num">トークン</th><th class="num">推定費用</th></tr></thead><tbody></tbody></table>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]));
+const LABEL = { allow:'通過', mask:'マスクして送信', block:'ブロック' };
+
+async function loadSummary() {
+  const rows = await (await fetch('/api/summary')).json();
+  $('summary').querySelector('tbody').innerHTML = rows.map((s) =>
+    `<tr><td>${esc(s.department)}</td><td class="num">${s.requests}</td><td class="num">${s.masked}</td><td class="num">${s.blocked}</td><td class="num">${s.outputWarnings}</td><td class="num">${s.errors}</td><td class="num">${s.inputTokens + s.outputTokens}</td><td class="num">$${s.estimatedCostUsd.toFixed(4)}</td></tr>`).join('')
+    || '<tr><td colspan="8" style="color:var(--muted)">まだ記録がありません</td></tr>';
+}
+
+async function run() {
+  $('run').disabled = true;
+  try {
+    const res = await fetch('/api/run', { method:'POST', headers:{ 'content-type':'application/json' },
+      body: JSON.stringify({ user:$('user').value, department:$('dept').value, prompt:$('prompt').value }) });
+    const r = await res.json();
+    const box = $('result'); box.hidden = false;
+    if (r.error) { box.innerHTML = `<span class="badge block">エラー</span> ${esc(r.error)}`; return; }
+    const findings = r.findings.map((f) => `${esc(f.label)} ${esc(f.preview)}`).join('、') || 'なし';
+    const check = r.outputCheck
+      ? (r.outputCheck.status === 'ok'
+          ? '<span class="badge allow">問題なし</span>'
+          : `<span class="badge mask">警告</span>\n${r.outputCheck.issues.map((i) => esc(i.message)).join('\n')}`)
+      : '';
+    let body;
+    if (r.status === 'blocked') {
+      body = `<dt>理由</dt><dd>${r.blockReasons.map(esc).join('\n')}</dd><dt>AIへの送信</dt><dd>していません</dd>`;
+    } else if (r.status === 'error') {
+      body = `<dt>AIへ送った文</dt><dd>${esc(r.sentPrompt)}</dd><dt>エラー</dt><dd>${esc(r.error)}</dd>`;
+    } else {
+      body = `<dt>AIへ送った文</dt><dd>${esc(r.sentPrompt)}</dd><dt>AIの回答</dt><dd>${esc(r.aiResponse)}</dd><dt>回答のチェック</dt><dd>${check}</dd><dt>復元後の回答</dt><dd>${esc(r.restoredResponse)}</dd>
+           <dt>トークン</dt><dd>入力 ${r.inputTokens} / 出力 ${r.outputTokens}${r.tokensEstimated ? '（概算）' : ''}　推定 $${r.estimatedCostUsd.toFixed(5)}</dd>`;
+    }
+    const badge = r.status === 'error' ? '<span class="badge block">エラー</span>' : `<span class="badge ${r.decision}">${LABEL[r.decision]}</span>`;
+    box.innerHTML = `${badge}<dl><dt>検知</dt><dd>${findings}</dd>${body}</dl>`;
+    loadSummary();
+  } finally { $('run').disabled = false; }
+}
+
+(async () => {
+  const info = await (await fetch('/api/info')).json();
+  $('mode').textContent = `モード: ${info.mode === 'live' ? 'Claude API（' + info.model + '）' : '模擬（APIキーなし）'}`;
+  const samples = await (await fetch('/api/samples')).json();
+  $('samples').innerHTML = samples.map((s, i) => `<button class="chip" data-i="${i}">${esc(s.id)} ${esc(s.title)}</button>`).join('');
+  $('samples').onclick = (e) => { const s = samples[e.target.dataset?.i]; if (!s) return;
+    $('prompt').value = s.input; $('user').value = s.user; $('dept').value = s.department; };
+  $('run').onclick = run;
+  loadSummary();
+})();
+</script>
+</body>
+</html>
