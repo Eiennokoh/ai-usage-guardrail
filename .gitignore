@@ -1,0 +1,19 @@
+# 依存パッケージ
+node_modules/
+
+# APIキーなどの秘密情報（絶対にコミットしない）
+.env
+.env.*
+!.env.example
+
+# 利用記録（実行のたびに生成される）
+logs/
+*.jsonl
+
+# ビルド成果物・OS/エディタの一時ファイル
+dist/
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,30 @@
+{
+  "name": "ai-usage-guardrail",
+  "version": "1.0.0",
+  "description": "A pre-send checkpoint for generative AI: detects client names, account numbers and personal data, masks or blocks them, and logs usage by department.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "demo": "tsx src/cli/demo.ts",
+    "demo:step": "tsx src/cli/demo.ts --step",
+    "demo:live": "tsx src/cli/demo.ts --live",
+    "ask": "tsx src/cli/ask.ts",
+    "report": "tsx src/cli/report.ts",
+    "eval": "tsx src/cli/eval.ts",
+    "web": "tsx src/web/server.ts",
+    "test": "tsx --test \"tests/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
