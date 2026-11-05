@@ -200,7 +200,7 @@ cp .env.example .env
 | `npm run demo:live` | 同じデモを Claude API で実行（APIキーが必要。ブロックした入力は送信しないため、API呼び出しは13回） |
 | `npm run ask -- --user tanaka --dept 運用部 "依頼文"` | 1件だけ送信。`--mock` を付けると APIキーがあっても模擬モード |
 | `npm run report` | `logs/usage.jsonl` を部署別に集計（`-- --log logs/demo-usage.jsonl` でデモの記録も可） |
-| `npm run web` | 簡易画面を起動（http://127.0.0.1:3000）。テスト入力をボタンで呼び出して試せます |
+| `npm run web` | 簡易画面を起動（`http://127.0.0.1:3000`）。テスト入力をボタンで呼び出して試せます |
 | `npm run eval` | テスト入力で検知漏れ率・誤ブロック率を計算 |
 | `npm test` | 自動テスト（51件） |
 | `npm run typecheck` | 型チェック |
