@@ -304,4 +304,4 @@ ai-usage-guardrail/
 
 ## ライセンス
 
-MIT
+[MIT License](LICENSE) © 2026 KOH Tetsuen
